@@ -57,22 +57,17 @@ def upload_data(
             try:
                 # Load JSON data from the file
                 data = json.load(file)
-                for category in data:
-                    if isinstance(data[category], list):
-                        for ele in data[category]:
-                            ele = update_response_header(ele)
-                    else:
-                        data[category] = update_response_header(data[category])
-
+                data = transform_response(data)
                 # Upload the JSON document to Elasticsearch
                 elastic_client.index(index=index_name, body=data)
                 print(f"Uploaded {filename} to index '{index_name}'.")
 
             except json.JSONDecodeError as e:
                 print(f"Error decoding JSON from {filename}: {e}")
-                failed_file_path = os.path.join(error_directory, filename)
-                shutil.copy(file_path, failed_file_path)
-                print(f"Copied failed file to '{failed_file_path}'.")
+                handle_invalid_input(
+                    error_directory=error_directory,
+                    file_path=file_path,
+                    filename=filename)
             except NotFoundError as e:
                 print(f"Error uploading {filename}: Index not found. {e}")
             except ConnectionError as e:
@@ -81,16 +76,44 @@ def upload_data(
                 print(f"An unexpected error occurred with {filename}: {e}")
 
 
+def transform_response(data):
+    response_timestamps = []
+    for category in data:
+        if isinstance(data[category], list):
+            for ele in data[category]:
+                ele, response_timestamp = update_response_header(ele)
+                response_timestamps.append(response_timestamp)
+        else:
+            data[category], response_timestamp = update_response_header(data[category])
+            response_timestamps.append(response_timestamp)
+
+    # Check if all dates are the same and assign as a common timestamp of the document
+    first_timestamp = response_timestamps[0]
+    is_consistent = all(timestamp == first_timestamp for timestamp in response_timestamps)
+    if is_consistent:
+        data["ResponseTimestamp"] = first_timestamp
+    return data
+
+
 def update_response_header(node):
 
+    header_timestamp = None
     if node['ResponseMetadata'] \
         and node['ResponseMetadata']['HTTPHeaders'] \
             and node['ResponseMetadata']['HTTPHeaders']['date']:
         timestamp_str = node['ResponseMetadata']['HTTPHeaders']['date']
 
-        node['ResponseMetadata']['HTTPHeaders']['date'] = datetime.strptime(timestamp_str, "%a, %d %b %Y %H:%M:%S %Z")
+        header_timestamp = datetime.strptime(timestamp_str, "%a, %d %b %Y %H:%M:%S %Z")
+        node['ResponseMetadata']['HTTPHeaders']['date'] = header_timestamp
 
-    return node
+    return node, header_timestamp
+
+
+def handle_invalid_input(error_directory, file_path, filename):
+
+    failed_file_path = os.path.join(error_directory, filename)
+    shutil.copy(file_path, failed_file_path)
+    print(f"Copied failed file to '{failed_file_path}'.")
 
 
 def download_data(
@@ -181,3 +204,5 @@ if __name__ == "__main__":
                     index_name=search_config["index_name"],
                     output_directory=search_config["output_directory"],
                     search_config_filters=search_config["filters"])
+
+

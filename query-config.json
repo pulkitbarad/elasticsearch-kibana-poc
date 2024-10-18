@@ -3,11 +3,11 @@
   "elastic_service_token_file": "./local_tokens/kibana-service-token.txt",
   "upload_config":[
     {
-      "is_enabled":false,
+      "is_enabled":true,
       "name":"upload_1",
       "input_directory": "./data/A1/",
       "error_directory": "./data/error/",
-      "index_name": "face-recognition-metadata"
+      "index_name": "face-metadata"
     }
   ],
   "search_config":[
@@ -15,7 +15,7 @@
       "is_enabled":false,
       "name":"search_1",
       "output_directory": "./data/out/",
-      "index_name": "face-recognition-metadata",
+      "index_name": "face-metadata",
       "filters": [
         {
           "date_path": "delete_faces.ResponseMetadata.HTTPHeaders.date",
@@ -29,6 +29,19 @@
         },
         {
           "date_path": "search_users.ResponseMetadata.HTTPHeaders.date",
+          "start_date": "2024-10-11T16:10:00",
+          "end_date": "2024-10-11T17:10:00"
+        }
+      ]
+    },
+    {
+      "is_enabled":false,
+      "name":"search_2",
+      "output_directory": "./data/out/",
+      "index_name": "face-metadata",
+      "filters": [
+        {
+          "date_path": "ResponseTimestamp",
           "start_date": "2024-10-11T16:10:00",
           "end_date": "2024-10-11T17:10:00"
         }
