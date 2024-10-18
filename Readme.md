@@ -1,6 +1,6 @@
 # Elasticsearch and Kibana Setup with Docker Compose
 
-This repository provides a setup for **Elasticsearch** and **Kibana** using Docker Compose. It includes the generation of a **service account token** for Kibana, ensuring secure communication between the two services.
+This repository provides a setup for **Elasticsearch** and **Kibana** using Docker Compose. It includes the generation of a **service account token** for Kibana, using communication between the two services.
 
 ## Prerequisites
 
@@ -39,7 +39,8 @@ Make sure you have the following installed on your machine:
 Run the following command to build and start the services:
 
 ```bash
-docker-compose up --build -d
+docker-compose build --no-cache
+docker-compose up -d
 ```
 
 ### 4. Verify the Setup
@@ -103,6 +104,14 @@ Similarly, each object in search_config allows distinct search and writes the re
 #### Run python client
 
 Run ```python .\my_elastic_client.py``` 
+
+## Stopping and Cleaning Up
+
+To stop the services, run:
+
+```bash
+docker-compose down -v
+```
 
 #### Kibana Timeseries chart
 ![Alt text](./Timeseries-metadata-entries.png)
