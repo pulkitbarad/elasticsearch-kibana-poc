@@ -1,0 +1,38 @@
+{
+  "elastic_host": "http://localhost:9200",
+  "elastic_service_token_file": "./local_tokens/kibana-service-token.txt",
+  "upload_config":[
+    {
+      "is_enabled":false,
+      "name":"upload_1",
+      "input_directory": "./data/A1/",
+      "error_directory": "./data/error/",
+      "index_name": "face-recognition-metadata"
+    }
+  ],
+  "search_config":[
+    {
+      "is_enabled":false,
+      "name":"search_1",
+      "output_directory": "./data/out/",
+      "index_name": "face-recognition-metadata",
+      "filters": [
+        {
+          "date_path": "delete_faces.ResponseMetadata.HTTPHeaders.date",
+          "start_date": "2024-10-11T16:10:00",
+          "end_date": "2024-10-11T17:10:00"
+        },
+        {
+          "date_path": "index_faces.ResponseMetadata.HTTPHeaders.date",
+          "start_date": "2024-10-11T16:10:00",
+          "end_date": "2024-10-11T17:10:00"
+        },
+        {
+          "date_path": "search_users.ResponseMetadata.HTTPHeaders.date",
+          "start_date": "2024-10-11T16:10:00",
+          "end_date": "2024-10-11T17:10:00"
+        }
+      ]
+    }
+  ]
+}
