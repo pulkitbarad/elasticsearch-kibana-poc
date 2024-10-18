@@ -1,0 +1,56 @@
+version: '3.9'
+
+services:
+  elasticsearch:
+    build:
+      context: .  # Use the current directory
+      dockerfile: Dockerfile  # Specify the Dockerfile to use
+    container_name: elasticsearch
+    environment:
+      - discovery.type=single-node
+      - ELASTIC_PASSWORD=yourpassword
+      - ES_JAVA_OPTS=-Xms1g -Xmx1g
+      - xpack.security.enabled=false  # Disable security to use HTTP
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    mem_limit: 2g
+    ports:
+      - "9200:9200"
+    volumes:
+      - esdata:/usr/share/elasticsearch/data
+      - ./local_tokens:/usr/share/elasticsearch/tmp  # Keeping this as is
+    networks:
+      - elastic
+    healthcheck:
+      test: ["CMD", "curl", "-s", "http://localhost:9200/_cluster/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  kibana:
+    image: docker.elastic.co/kibana/kibana:8.15.3
+    container_name: kibana
+    environment:
+      - ELASTICSEARCH_HOSTS=http://elasticsearch:9200
+      - ELASTICSEARCH_SERVICE_TOKEN_FILE=/usr/share/elasticsearch/tmp/kibana-service-token.txt
+    depends_on:
+      elasticsearch:
+        condition: service_healthy
+    ports:
+      - "5601:5601"
+    volumes:
+      - ./local_tokens:/usr/share/elasticsearch/tmp  # Shared volume for accessing the token on the host
+    networks:
+      - elastic
+
+volumes:
+  esdata:
+    driver: local
+  kibana-token:
+    driver: local
+
+networks:
+  elastic:
+    driver: bridge

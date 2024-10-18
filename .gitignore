@@ -1,0 +1,6 @@
+# Local tokens directory
+local_tokens/
+# PyCharm settings
+.idea/
+# Environment variables
+.venv/
