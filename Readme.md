@@ -9,7 +9,10 @@ Make sure you have the following installed on your machine:
 - Docker Compose
 - ElasticSearch Python client 
 ```bash
-    python -m pip install elasticsearch)
+    python -m pip install elasticsearch
+```
+```bash
+    python -m pip install pytest
 ```
 ## Services Overview
 

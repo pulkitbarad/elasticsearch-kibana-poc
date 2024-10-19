@@ -5,3 +5,5 @@ local_tokens/
 # Environment variables
 .venv/
 data/
+/__pycache__
+/tests/__pycache__

@@ -4,6 +4,7 @@ import shutil
 from datetime import datetime
 from elasticsearch import Elasticsearch, NotFoundError, ConnectionError
 
+
 def init_client(elastic_host, elastic_token_file_path):
     # Read the token from the file
     with open(elastic_token_file_path, 'r') as file:
@@ -16,23 +17,22 @@ def init_client(elastic_host, elastic_token_file_path):
     )
 
 
-def init_query_config(query_config_directory,query_config_filename):
+def init_query_config(query_config_directory, query_config_filename):
     file_path = os.path.join(query_config_directory, query_config_filename)
+    print(file_path)
     with open(file_path, 'r') as file:
         try:
-            # Load JSON data from the file
             return json.load(file)
         except Exception as e:
             print(f"An unexpected error occurred while reading {query_config_filename}: {e}")
         finally:
             if file is not None:
-                file.close()  # Ensure the file is closed
+                file.close()
 
 
 def test_connection(query_config):
     elastic_host, elastic_token_file_path = query_config["Elastic_Host"], query_config["Elastic_Service_Token_File"]
     es = init_client(elastic_host, elastic_token_file_path)
-    # Check if the connection is successful
     if es.ping():
         print("Connected to Elasticsearch!")
     else:
@@ -47,51 +47,62 @@ def upload_data(
 
     os.makedirs(error_directory, exist_ok=True)
 
-    if not elastic_client.indices.exists(index=index_name):
-        elastic_client.indices.create(index=index_name)
+    if not elastic_client.indices.exists(index_name):
+        elastic_client.indices.create(index_name)
         print(f"Index '{index_name}' created.")
 
     for filename in os.listdir(input_directory):
         file_path = os.path.join(input_directory, filename)
-        with open(file_path, 'r') as file:
-            try:
-                # Load JSON data from the file
-                data = json.load(file)
-                data = transform_response(data)
-                # Upload the JSON document to Elasticsearch
-                elastic_client.index(index=index_name, body=data)
-                print(f"Uploaded {filename} to index '{index_name}'.")
+        if os.path.isfile(file_path):
+            with open(file_path, 'r') as file:
+                try:
+                    data = json.load(file)
+                    data = transform_response(data)
+                    elastic_client.index(index_name, data)
+                    print(f"Uploaded {filename} to index '{index_name}'.")
 
-            except json.JSONDecodeError as e:
-                print(f"Error decoding JSON from {filename}: {e}")
-                handle_invalid_input(
-                    error_directory=error_directory,
-                    file_path=file_path,
-                    filename=filename)
-            except NotFoundError as e:
-                print(f"Error uploading {filename}: Index not found. {e}")
-            except ConnectionError as e:
-                print(f"Error uploading {filename}: Connection issue. {e}")
-            except Exception as e:
-                print(f"An unexpected error occurred with {filename}: {e}")
+                except json.JSONDecodeError as e:
+                    print(f"Error decoding JSON from {filename}: {e}")
+                    handle_invalid_input(
+                        error_directory=error_directory,
+                        file_path=file_path,
+                        filename=filename)
+                    raise
+                except NotFoundError as e:
+                    print(f"Error uploading {filename}: Index not found. {e}")
+                except ConnectionError as e:
+                    print(f"Error uploading {filename}: Connection issue. {e}")
+                except Exception as e:
+                    print(f"An unexpected error occurred with {filename}: {e}")
+        else:
+            print(f"Skipping {file_path}, as it is not a file.")
 
 
 def transform_response(data):
     response_timestamps = []
+
+    if not data:
+        return {"ResponseTimestamp": None}
+
     for category in data:
         if isinstance(data[category], list):
             for ele in data[category]:
                 ele, response_timestamp = update_response_header(ele)
-                response_timestamps.append(response_timestamp)
+                if response_timestamp:  # Only add valid timestamps
+                    response_timestamps.append(response_timestamp)
         else:
             data[category], response_timestamp = update_response_header(data[category])
-            response_timestamps.append(response_timestamp)
+            if response_timestamp:
+                response_timestamps.append(response_timestamp)
 
-    # Check if all dates are the same and assign as a common timestamp of the document
-    first_timestamp = response_timestamps[0]
-    is_consistent = all(timestamp == first_timestamp for timestamp in response_timestamps)
-    if is_consistent:
-        data["ResponseTimestamp"] = first_timestamp
+    if response_timestamps:
+        first_timestamp = response_timestamps[0]
+        is_consistent = all(timestamp == first_timestamp for timestamp in response_timestamps)
+        if is_consistent:
+            data["ResponseTimestamp"] = first_timestamp
+    else:
+        data["ResponseTimestamp"] = None
+
     return data
 
 
@@ -128,7 +139,6 @@ def download_data(
     hits = response['hits']['hits']
     print("Got %d Hits:" % response['hits']['total']['value'])
 
-    # Save each document to a separate JSON file
     save_search_result(search_name, hits, output_directory)
 
 
@@ -158,7 +168,6 @@ def build_query(search_config_filters):
 
 def save_search_result(search_name, hits, output_directory):
 
-    # Ensure the output directory exists
     output_directory = output_directory+search_name
     os.makedirs(output_directory, exist_ok=True)
 

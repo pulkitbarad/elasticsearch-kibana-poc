@@ -3,7 +3,7 @@
   "elastic_service_token_file": "./local_tokens/kibana-service-token.txt",
   "upload_config":[
     {
-      "is_enabled":true,
+      "is_enabled":false,
       "name":"upload_1",
       "input_directory": "./data/A1/",
       "error_directory": "./data/error/",
